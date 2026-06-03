@@ -14,7 +14,7 @@ import pandas as pd
 from fastapi import FastAPI, HTTPException, Request, status
 from loguru import logger
 
-from app.middleware import LoggingMiddleware
+from app.middleware import LoggingMiddleware, SecurityCORSMiddleware
 from app.schemas import HealthResponse, LoanApplication, Prediction
 
 # --- Loguru configuration ---------------------------------------------------
@@ -68,6 +68,8 @@ app = FastAPI(
     description="API serving the Pyrenex Crédit credit-risk scoring model.",
     lifespan=lifespan,
 )
+
+app.add_middleware(SecurityCORSMiddleware)
 app.add_middleware(LoggingMiddleware)
 
 
@@ -85,22 +87,35 @@ async def health() -> HealthResponse:
 @app.get("/info")
 async def info() -> dict:
     """Return loaded model metadata.
-
-    TODO — Return at least: api_version, model_name, model_version,
-    model_created_at, metrics_holdout.
     """
-    # TODO — Implement (cf. mini-cours 05_Versionning_modele_essentiel.md)
-    raise NotImplementedError("Implement /info endpoint")
+    info = { 
+        "api_version": app.version,
+        "model_name": app.state.metadata.get("model_name"),
+        "model_version": app.state.metadata.get("model_version"),
+        "model_created_at": app.state.metadata.get("model_created_at"),
+        "metrics_holdout": app.state.metadata.get("metrics_holdout"),
+    }
+    return info
 
 
 @app.post("/predict", response_model=Prediction, status_code=status.HTTP_200_OK)
 async def predict(application: LoanApplication, request: Request) -> Prediction:
     """Predict default risk for one loan application.
-
-    TODO — Implement:
-      1. Convert application to a single-row DataFrame
-      2. Call model.predict() and model.predict_proba()
-      3. Return Prediction with request_id from request.state
     """
-    # TODO — Implement (cf. mini-cours 01_FastAPI_Pydantic_ml_essentiel.md)
-    raise NotImplementedError("Implement /predict endpoint")
+    # 1. Convert application to a single-row DataFrame
+    application_df = pd.DataFrame([application.dict()])
+
+    # 2. Call model.predict() and model.predict_proba()
+    model = app.state.model
+    inference = model.predict(application_df)
+    print("inference:", inference)
+    proba = model.predict_proba(application_df)[:, 1]  # Probabilité de défaut (classe 1)
+    print("proba:", proba)
+
+    # 3. Return Prediction with request_id from request.state
+    return Prediction(
+        prediction=inference[0],
+        probability=proba[0],
+        model_version=app.state.metadata.get("model_version"),
+        request_id=request.state.request_id,
+        )

@@ -8,8 +8,23 @@ import time
 import uuid
 
 from fastapi import Request
+from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 from starlette.middleware.base import BaseHTTPMiddleware
+
+
+class SecurityCORSMiddleware(CORSMiddleware):
+    """Reusable CORS policy for local frontend integration."""
+
+    def __init__(self, app, **kwargs):
+        super().__init__(
+            app,
+            allow_origins=["http://localhost:3000"],
+            allow_credentials=True,
+            allow_methods=["GET", "POST"],
+            allow_headers=["*"],
+            **kwargs,
+        )
 
 
 class LoggingMiddleware(BaseHTTPMiddleware):
@@ -47,3 +62,4 @@ class LoggingMiddleware(BaseHTTPMiddleware):
 
         response.headers["X-Request-ID"] = request_id
         return response
+
