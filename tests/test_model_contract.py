@@ -14,7 +14,7 @@ import joblib
 import pandas as pd
 import pytest
 
-MODEL_PATH = Path(__file__).parent.parent / "models" / "pyrenex_risk_v2.joblib"
+MODEL_PATH = Path(__file__).parent.parent / "models" / "pyrenex_risk_v2_balanced.joblib"
 
 
 @pytest.fixture(scope="module")
