@@ -5,10 +5,12 @@ Adds X-Request-ID to every response and logs structured JSON to file.
 from __future__ import annotations
 
 import time
+from urllib import request
 import uuid
 
 from fastapi import Request
 from fastapi.middleware.cors import CORSMiddleware
+from httpx import request
 from loguru import logger
 from starlette.middleware.base import BaseHTTPMiddleware
 
@@ -53,11 +55,13 @@ class LoggingMiddleware(BaseHTTPMiddleware):
 
         logger.bind(request_id=request_id).log(
             log_level,
-            "{method} {path} {status} {latency_ms}ms",
+            "{timestamp} {method} {path} {status} {latency_ms}ms id={request_id}",
+            timestamp=start,
             method=request.method,
             path=request.url.path,
             status=status_code,
             latency_ms=latency_ms,
+            request_id=request_id,
         )
 
         response.headers["X-Request-ID"] = request_id
